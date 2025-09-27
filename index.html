@@ -36,7 +36,14 @@ footer{margin-top:12px;text-align:center;font-size:12px;color:#000;}
 <div class="app">
 <div class="card">
 <h1>HonkingMod Accounts</h1>
-<div id="auth-area"></div>
+<div id="auth-area">
+<label>Email</label><input id="auth-email" type="text" placeholder="Enter email"/>
+<label>Password</label><input id="auth-password" type="password" placeholder="Enter password"/>
+<div style="margin-top:6px;display:flex;gap:6px">
+<button id="btn-register">Register</button>
+<button id="btn-login">Login</button>
+</div>
+</div>
 <div id="account-controls" style="display:none;margin-top:12px">
 <div style="background:#fff;padding:6px;border:2px solid #000;margin-bottom:6px">Logged in as <strong id="me-name"></strong></div>
 <label>Display name</label>
@@ -64,7 +71,7 @@ footer{margin-top:12px;text-align:center;font-size:12px;color:#000;}
 <div><div id="canvas-name">Guest</div><div class="muted">Click HONK!</div></div>
 </div>
 <div style="padding:12px;flex:1">
-<button id="honkhonk">HONK!</button>
+<button id="honkhonk" disabled>HONK!</button>
 <p class="muted" style="margin-top:6px">Wacky test world.</p>
 </div>
 </div>
@@ -72,16 +79,14 @@ footer{margin-top:12px;text-align:center;font-size:12px;color:#000;}
 <div style="padding:6px;border-bottom:3px solid #000;background:#ffcc66"><strong>Global Chat</strong></div>
 <div class="messages" id="messages"></div>
 <div class="composer">
-<input id="chat-input" type="text" placeholder="Say something..." />
-<button id="send-chat">Send</button>
+<input id="chat-input" type="text" placeholder="Say something..." disabled/>
+<button id="send-chat" disabled>Send</button>
 </div>
 </div>
 </div>
 <footer class="card">HonkingMod — powered by Firebase. Shared chat/accounts.</footer>
 </div>
 </div>
-
-<!-- Firebase SDKs -->
 <script src="https://www.gstatic.com/firebasejs/9.30.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.30.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.30.0/firebase-firestore-compat.js"></script>
@@ -94,75 +99,17 @@ const firebaseConfig = {
   messagingSenderId: "484991397323",
   appId: "1:484991397323:web:5b1f72eaa0b6c3d0abcdef"
 };
-
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
-
 function $(sel){return document.querySelector(sel);}
 function $id(id){return document.getElementById(id);}
-function escapeHtml(s){return String(s).replace(/[&<>\"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;','\'':'&#39;'}[m]));}
-
-function renderAuth(){
-  const area = $id('auth-area');
-  area.innerHTML = `<label>Email</label><input id='auth-email' type='text'/><label>Password</label><input id='auth-password' type='password'/><div style='margin-top:6px;display:flex;gap:6px'><button id='btn-login'>Login</button><button id='btn-register'>Register</button></div>`;
-  $('#btn-register').addEventListener('click',()=>{
-    const email=$('#auth-email').value.trim();
-    const pass=$('#auth-password').value;
-    auth.createUserWithEmailAndPassword(email,pass).then(()=>{ alert('Registered!'); }).catch(e=>alert(e.message));
-  });
-  $('#btn-login').addEventListener('click',()=>{
-    const email=$('#auth-email').value.trim();
-    const pass=$('#auth-password').value;
-    auth.signInWithEmailAndPassword(email,pass).catch(e=>alert(e.message));
-  });
-}
-
-auth.onAuthStateChanged(user=>{
-  if(user){
-    $id('auth-area').style.display='none';
-    $id('account-controls').style.display='block';
-    $id('me-name').textContent=user.email;
-    $id('display-name').value=user.email;
-    $id('top-current').textContent=user.email;
-    $id('canvas-name').textContent=user.email;
-    $id('canvas-avatar').textContent=user.email[0].toUpperCase();
-    renderUsersList(); renderMessages();
-  }else{
-    $id('auth-area').style.display='block';
-    $id('account-controls').style.display='none';
-    $id('top-current').textContent='(none)';
-    $id('canvas-name').textContent='Guest';
-    $id('canvas-avatar').textContent='🙂';
-  }
-});
-
-$id('logout').addEventListener('click',()=>{ auth.signOut(); });
-
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[m]));}
 function renderUsersList(){
   const list=$id('users-list');
   const user=auth.currentUser;
-  if(user){
-    list.innerHTML=`<div class='user-item'><div class='avatar'>${escapeHtml(user.email[0].toUpperCase())}</div><div><strong>${escapeHtml(user.email)}</strong></div></div>`;
-  }else{ list.innerHTML='<div class="muted">No user logged in.</div>'; }
+  if(user){list.innerHTML=`<div class='user-item'><div class='avatar'>${escapeHtml(user.email[0].toUpperCase())}</div><div><strong>${escapeHtml(user.email)}</strong></div></div>`;}else{list.innerHTML='<div class="muted">No user logged in.</div>'}
 }
-
-function sendChat(){
-  const text=$('#chat-input').value.trim();
-  const user=auth.currentUser;
-  if(!text || !user) return;
-  db.collection('messages').add({author:user.email,text,time:Date.now()});
-  $('#chat-input').value='';
-}
-
-$('#send-chat').addEventListener('click',sendChat);
-$('#chat-input').addEventListener('keydown',e=>{if(e.key==='Enter') sendChat();});
-$('#honkhonk').addEventListener('click',()=>{
-  const user=auth.currentUser;
-  if(!user) return;
-  db.collection('messages').add({author:user.email,text:'HONK!',time:Date.now()});
-});
-
 function renderMessages(){
   db.collection('messages').orderBy('time').onSnapshot(snapshot=>{
     const container=$id('messages');
@@ -177,8 +124,14 @@ function renderMessages(){
     container.scrollTop=container.scrollHeight;
   });
 }
-
-renderAuth();
-</script>
-</body>
-</html>
+function enableChat(){
+  $('#chat-input').disabled=false;
+  $('#send-chat').disabled=false;
+  $('#honkhonk').disabled=false;
+}
+$('#send-chat').addEventListener('click',()=>{
+  const text=$('#chat-input').value.trim();
+  const user=auth.currentUser;
+  if(!text||!user)return;
+  db.collection('messages').add({author:user.email,text,time:Date.now()});
+  $('#
