@@ -116,6 +116,12 @@ input {
   border:3px solid var(--sonic-blue);
   font-size:10px;
 }
+
+#mc-iframe-container iframe {
+  width:100%;
+  max-width:552px;
+  height:167px;
+}
 </style>
 </head>
 <body>
@@ -151,7 +157,13 @@ input {
     <button id="btn-smk" disabled>Play Super Mario Kart</button>
     <button id="btn-s3ak" disabled>Play Sonic 3 & Knuckles</button>
     <button id="btn-terraria" disabled>Play Terraria</button>
-    <button id="btn-mc" disabled>Play Minecraft</button>
+    <div id="mc-iframe-container" style="display:none; margin-top:8px;">
+      <iframe frameborder="0" src="https://itch.io/embed/3915950?bg_color=000000&amp;fg_color=ffffff&amp;link_color=cdffb4&amp;border_color=000000">
+        <a href="https://titanium-nitro.itch.io/minecraft-honking-mod-edition-v06">
+          Minecraft Honking Mod Edition: Classic v0.6 by Nitro
+        </a>
+      </iframe>
+    </div>
   </div>
 
   <div class="panel">
@@ -164,7 +176,6 @@ input {
   </div>
 </div>
 
-<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
@@ -229,7 +240,6 @@ $id('honkhonk').onclick = ()=>{
 $id('btn-smk').onclick = ()=>window.location.href="SMK.html";
 $id('btn-s3ak').onclick = ()=>window.location.href="s3ak.html";
 $id('btn-terraria').onclick = ()=>window.location.href="Terraria.html";
-$id('btn-mc').onclick = ()=>window.location.href="MCHMEC0.6.html";
 
 // Auth state
 auth.onAuthStateChanged(async user=>{
@@ -250,11 +260,13 @@ auth.onAuthStateChanged(async user=>{
     $id('send-chat').disabled=false;
     $id('honkhonk').disabled=false;
 
-    // Enable game buttons
+    // Enable local game buttons
     $id('btn-smk').disabled=false;
     $id('btn-s3ak').disabled=false;
     $id('btn-terraria').disabled=false;
-    $id('btn-mc').disabled=false;
+
+    // Show Minecraft iframe
+    $id('mc-iframe-container').style.display = "block";
 
     // Users list
     db.collection('users').onSnapshot(s=>{
@@ -291,11 +303,13 @@ auth.onAuthStateChanged(async user=>{
     $id('send-chat').disabled=true;
     $id('honkhonk').disabled=true;
 
-    // Disable game buttons
+    // Disable local game buttons
     $id('btn-smk').disabled=true;
     $id('btn-s3ak').disabled=true;
     $id('btn-terraria').disabled=true;
-    $id('btn-mc').disabled=true;
+
+    // Hide Minecraft iframe
+    $id('mc-iframe-container').style.display = "none";
 
     $id('users-list').innerHTML='';
     $id('messages').innerHTML='';
@@ -305,3 +319,4 @@ auth.onAuthStateChanged(async user=>{
 </script>
 </body>
 </html>
+
