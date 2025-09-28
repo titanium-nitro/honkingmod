@@ -1,11 +1,192 @@
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-    match /messages/{messageId} {
-      allow read, write: if request.auth != null;
-    }
-  }
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>HonkingMod</title>
+<style>
+:root {
+  --bg:#003366; /* dark blue */
+  --panel:#cc0000; /* red */
+  --accent:#0066cc; /* light blue */
+  --border:#fff;
 }
+body {
+  margin:0; font-family:Verdana,Tahoma,sans-serif; background:var(--bg); color:#fff;
+}
+h1 { text-align:center; background:var(--panel); padding:10px; margin:0; }
+.container {
+  display:grid; grid-template-columns:250px 1fr 250px; gap:10px;
+  max-width:1200px; margin:0 auto; padding:10px;
+}
+.panel {
+  background:var(--panel); border:2px solid var(--border); border-radius:10px;
+  padding:10px; overflow:auto;
+}
+#messages { max-height:300px; overflow-y:auto; background:#111; padding:5px; border-radius:5px; }
+.msg { margin:2px 0; }
+.user-item { display:flex; align-items:center; margin-bottom:5px; }
+.avatar {
+  width:30px; height:30px; border-radius:50%; background:var(--accent);
+  display:flex; align-items:center; justify-content:center; margin-right:5px;
+}
+button {
+  background:var(--accent); border:none; padding:6px 12px;
+  border-radius:5px; color:#fff; cursor:pointer; margin:3px 0;
+}
+button:disabled { background:#555; cursor:not-allowed; }
+input { width:90%; margin:3px 0; padding:4px; border-radius:4px; border:none; }
+</style>
+</head>
+<body>
+<h1>🔥 HonkingMod 🔵🔴</h1>
+
+<div class="container">
+  <div class="panel">
+    <h2>Account</h2>
+    <div id="auth-area">
+      <input id="reg-email" placeholder="Email"><br>
+      <input id="reg-pass" type="password" placeholder="Password"><br>
+      <input id="reg-nick" placeholder="Nickname"><br>
+      <button id="btn-register">Register</button>
+      <hr>
+      <input id="log-email" placeholder="Email"><br>
+      <input id="log-pass" type="password" placeholder="Password"><br>
+      <button id="btn-login">Login</button>
+      <button id="btn-logout">Logout</button>
+    </div>
+    <div id="me-name"></div>
+  </div>
+
+  <div class="panel">
+    <h2>Canvas</h2>
+    <div style="display:flex;align-items:center;">
+      <div class="avatar" id="canvas-avatar">🙂</div>
+      <div id="canvas-name">Guest</div>
+    </div>
+    <p>Current user: <span id="top-current">(none)</span></p>
+    <button id="honkhonk" disabled>HONK!</button>
+  </div>
+
+  <div class="panel">
+    <h2>Users</h2>
+    <div id="users-list"></div>
+    <h2>Chat</h2>
+    <div id="messages"></div>
+    <input id="chat-input" placeholder="Type message..." disabled>
+    <button id="send-chat" disabled>Send</button>
+  </div>
+</div>
+
+<!-- Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyAgsn_BkIWvlenmsAOXaWGfkuGH0H50AiM",
+  authDomain: "honkingmod.firebaseapp.com",
+  projectId: "honkingmod",
+};
+firebase.initializeApp(firebaseConfig);
+const auth = firebase.auth();
+const db = firebase.firestore();
+
+const $id = id => document.getElementById(id);
+let messagesUnsub = null;
+
+// Register
+$id('btn-register').onclick = async () => {
+  const email = $id('reg-email').value;
+  const pass = $id('reg-pass').value;
+  const nick = $id('reg-nick').value || "Anon";
+  try {
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    await db.collection('users').doc(cred.user.uid).set({displayName:nick});
+    alert("Registered!");
+  } catch(e) { alert(e.message); }
+};
+
+// Login
+$id('btn-login').onclick = () => {
+  auth.signInWithEmailAndPassword($id('log-email').value, $id('log-pass').value)
+    .catch(e=>alert(e.message));
+};
+$id('btn-logout').onclick = ()=>auth.signOut();
+
+// Send message
+$id('send-chat').onclick = async ()=>{
+  const msg = $id('chat-input').value;
+  if(msg.trim()==='') return;
+  const user = auth.currentUser;
+  const snap = await db.collection('users').doc(user.uid).get();
+  const nickname = snap.exists ? snap.data().displayName : "Anon";
+  await db.collection('messages').add({
+    uid:user.uid, displayName:nickname, text:msg, time:Date.now()
+  });
+  $id('chat-input').value='';
+};
+
+// HONK
+$id('honkhonk').onclick = ()=>{
+  const user = auth.currentUser;
+  if(!user) return;
+  alert("🦆 HONK from "+$id('canvas-name').textContent+"!");
+};
+
+// Auth state
+auth.onAuthStateChanged(async user=>{
+  if(user){
+    const snap = await db.collection('users').doc(user.uid).get();
+    const nickname = snap.exists ? snap.data().displayName : "Anon";
+
+    $id('me-name').textContent='Logged in as '+nickname;
+    $id('canvas-name').textContent=nickname;
+    $id('canvas-avatar').textContent=nickname[0].toUpperCase();
+    $id('top-current').textContent=nickname;
+
+    $id('chat-input').disabled=false;
+    $id('send-chat').disabled=false;
+    $id('honkhonk').disabled=false;
+
+    // Users list
+    db.collection('users').onSnapshot(s=>{
+      $id('users-list').innerHTML='';
+      s.forEach(doc=>{
+        const u = doc.data();
+        const div=document.createElement('div');
+        div.className='user-item';
+        div.innerHTML='<div class="avatar">'+u.displayName[0].toUpperCase()+'</div><div>'+u.displayName+'</div>';
+        $id('users-list').appendChild(div);
+      });
+    });
+
+    // Messages
+    if(messagesUnsub) messagesUnsub();
+    messagesUnsub = db.collection('messages').orderBy('time').onSnapshot(s=>{
+      $id('messages').innerHTML='';
+      s.forEach(doc=>{
+        const m=doc.data();
+        const div=document.createElement('div');
+        div.className='msg';
+        div.textContent = m.displayName+": "+m.text;
+        $id('messages').appendChild(div);
+      });
+      $id('messages').scrollTop=$id('messages').scrollHeight;
+    });
+  }else{
+    $id('me-name').textContent='';
+    $id('canvas-name').textContent='Guest';
+    $id('canvas-avatar').textContent='🙂';
+    $id('top-current').textContent='(none)';
+    $id('chat-input').disabled=true;
+    $id('send-chat').disabled=true;
+    $id('honkhonk').disabled=true;
+    $id('users-list').innerHTML='';
+    $id('messages').innerHTML='';
+    if(messagesUnsub) messagesUnsub();
+  }
+});
+</script>
+</body>
+</html>
