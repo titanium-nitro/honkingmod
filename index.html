@@ -147,6 +147,11 @@ input {
     </div>
     <p>Current user: <span id="top-current">(none)</span></p>
     <button id="honkhonk" disabled>HONK!</button>
+    <h2>Games</h2>
+    <button id="btn-smk" disabled>Play Super Mario Kart</button>
+    <button id="btn-s3ak" disabled>Play Sonic 3 & Knuckles</button>
+    <button id="btn-terraria" disabled>Play Terraria</button>
+    <button id="btn-mc" disabled>Play Minecraft</button>
   </div>
 
   <div class="panel">
@@ -220,6 +225,12 @@ $id('honkhonk').onclick = ()=>{
   alert("🦆 HONK from "+$id('canvas-name').textContent+"!");
 };
 
+// Game buttons
+$id('btn-smk').onclick = ()=>window.location.href="SMK.html";
+$id('btn-s3ak').onclick = ()=>window.location.href="s3ak.html";
+$id('btn-terraria').onclick = ()=>window.location.href="Terraria.html";
+$id('btn-mc').onclick = ()=>window.location.href="MCHMEC0.6.html";
+
 // Auth state
 auth.onAuthStateChanged(async user=>{
   if(user){
@@ -238,6 +249,12 @@ auth.onAuthStateChanged(async user=>{
     $id('chat-input').disabled=false;
     $id('send-chat').disabled=false;
     $id('honkhonk').disabled=false;
+
+    // Enable game buttons
+    $id('btn-smk').disabled=false;
+    $id('btn-s3ak').disabled=false;
+    $id('btn-terraria').disabled=false;
+    $id('btn-mc').disabled=false;
 
     // Users list
     db.collection('users').onSnapshot(s=>{
@@ -273,6 +290,13 @@ auth.onAuthStateChanged(async user=>{
     $id('chat-input').disabled=true;
     $id('send-chat').disabled=true;
     $id('honkhonk').disabled=true;
+
+    // Disable game buttons
+    $id('btn-smk').disabled=true;
+    $id('btn-s3ak').disabled=true;
+    $id('btn-terraria').disabled=true;
+    $id('btn-mc').disabled=true;
+
     $id('users-list').innerHTML='';
     $id('messages').innerHTML='';
     if(messagesUnsub) messagesUnsub();
