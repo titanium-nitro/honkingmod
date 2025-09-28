@@ -5,41 +5,121 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>HonkingMod</title>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
 :root {
-  --bg:#003366; /* dark blue */
-  --panel:#cc0000; /* red */
-  --accent:#0066cc; /* light blue */
-  --border:#fff;
+  --sonic-blue: #0033cc;
+  --knuckles-red: #cc0000;
+  --border: #ffff00;
+  --bg1: #111;
+  --bg2: #222;
 }
+
 body {
-  margin:0; font-family:Verdana,Tahoma,sans-serif; background:var(--bg); color:#fff;
+  margin:0;
+  font-family:'Press Start 2P', monospace;
+  background: repeating-linear-gradient(
+    45deg,
+    var(--bg1),
+    var(--bg1) 20px,
+    var(--bg2) 20px,
+    var(--bg2) 40px
+  );
+  color:#fff;
 }
-h1 { text-align:center; background:var(--panel); padding:10px; margin:0; }
+
+h1 {
+  text-align:center;
+  padding:12px;
+  margin:0;
+  font-size:18px;
+  background:linear-gradient(to right, var(--sonic-blue), var(--knuckles-red));
+  -webkit-text-stroke:1px black;
+}
+
 .container {
-  display:grid; grid-template-columns:250px 1fr 250px; gap:10px;
-  max-width:1200px; margin:0 auto; padding:10px;
+  display:grid;
+  grid-template-columns:250px 1fr 250px;
+  gap:10px;
+  max-width:1200px;
+  margin:0 auto;
+  padding:10px;
 }
+
 .panel {
-  background:var(--panel); border:2px solid var(--border); border-radius:10px;
-  padding:10px; overflow:auto;
+  background:#000;
+  border:4px solid var(--border);
+  padding:8px;
+  border-radius:0;
+  box-shadow:4px 4px 0 #444;
 }
-#messages { max-height:300px; overflow-y:auto; background:#111; padding:5px; border-radius:5px; }
-.msg { margin:2px 0; }
-.user-item { display:flex; align-items:center; margin-bottom:5px; }
-.avatar {
-  width:30px; height:30px; border-radius:50%; background:var(--accent);
-  display:flex; align-items:center; justify-content:center; margin-right:5px;
-}
+
 button {
-  background:var(--accent); border:none; padding:6px 12px;
-  border-radius:5px; color:#fff; cursor:pointer; margin:3px 0;
+  display:block;
+  width:100%;
+  background:var(--sonic-blue);
+  color:#fff;
+  border:4px solid var(--knuckles-red);
+  padding:10px;
+  margin:6px 0;
+  cursor:pointer;
+  font-family:'Press Start 2P', monospace;
+  font-size:10px;
+  text-transform:uppercase;
 }
-button:disabled { background:#555; cursor:not-allowed; }
-input { width:90%; margin:3px 0; padding:4px; border-radius:4px; border:none; }
+button:disabled {
+  background:#555;
+  border-color:#333;
+  cursor:not-allowed;
+}
+
+input {
+  width:95%;
+  margin:4px 0;
+  padding:6px;
+  border:3px solid var(--knuckles-red);
+  background:#111;
+  color:#fff;
+  font-family:'Press Start 2P', monospace;
+  font-size:10px;
+}
+
+#messages {
+  max-height:250px;
+  overflow-y:auto;
+  background:#111;
+  border:3px solid var(--sonic-blue);
+  padding:4px;
+  font-size:10px;
+}
+
+.msg { margin:2px 0; }
+
+.user-item {
+  display:flex; align-items:center;
+  font-size:10px; margin:3px 0;
+}
+
+.avatar {
+  width:24px; height:24px;
+  background:var(--knuckles-red);
+  display:flex; align-items:center; justify-content:center;
+  margin-right:5px;
+  border:2px solid var(--sonic-blue);
+  font-size:12px;
+}
+
+#license-card {
+  margin-top:10px;
+  padding:6px;
+  background:#111;
+  border:3px solid var(--sonic-blue);
+  font-size:10px;
+}
 </style>
 </head>
 <body>
-<h1>🔥 HonkingMod 🔵🔴</h1>
+<h1>HonkingMod</h1>
 
 <div class="container">
   <div class="panel">
@@ -56,6 +136,7 @@ input { width:90%; margin:3px 0; padding:4px; border-radius:4px; border:none; }
       <button id="btn-logout">Logout</button>
     </div>
     <div id="me-name"></div>
+    <div id="license-card" style="display:none;"></div>
   </div>
 
   <div class="panel">
@@ -95,6 +176,10 @@ const db = firebase.firestore();
 const $id = id => document.getElementById(id);
 let messagesUnsub = null;
 
+function generateLicense() {
+  return "HM-" + Math.random().toString(36).substr(2,6).toUpperCase();
+}
+
 // Register
 $id('btn-register').onclick = async () => {
   const email = $id('reg-email').value;
@@ -102,8 +187,9 @@ $id('btn-register').onclick = async () => {
   const nick = $id('reg-nick').value || "Anon";
   try {
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
-    await db.collection('users').doc(cred.user.uid).set({displayName:nick});
-    alert("Registered!");
+    const license = generateLicense();
+    await db.collection('users').doc(cred.user.uid).set({displayName:nick, license:license});
+    alert("Registered! Your license: " + license);
   } catch(e) { alert(e.message); }
 };
 
@@ -139,11 +225,15 @@ auth.onAuthStateChanged(async user=>{
   if(user){
     const snap = await db.collection('users').doc(user.uid).get();
     const nickname = snap.exists ? snap.data().displayName : "Anon";
+    const license = snap.exists ? snap.data().license : "N/A";
 
     $id('me-name').textContent='Logged in as '+nickname;
     $id('canvas-name').textContent=nickname;
     $id('canvas-avatar').textContent=nickname[0].toUpperCase();
     $id('top-current').textContent=nickname;
+
+    $id('license-card').style.display="block";
+    $id('license-card').innerHTML="HonkingMod License<br>"+license;
 
     $id('chat-input').disabled=false;
     $id('send-chat').disabled=false;
@@ -179,6 +269,7 @@ auth.onAuthStateChanged(async user=>{
     $id('canvas-name').textContent='Guest';
     $id('canvas-avatar').textContent='🙂';
     $id('top-current').textContent='(none)';
+    $id('license-card').style.display="none";
     $id('chat-input').disabled=true;
     $id('send-chat').disabled=true;
     $id('honkhonk').disabled=true;
